@@ -1,0 +1,25 @@
+name: Gaming Arena CI
+
+on:
+  push:
+    branches:
+      - main
+      - develop
+  pull_request:
+    branches:
+      - main
+      - develop
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Descargar código
+        uses: actions/checkout@v4
+
+      - name: Verificar repositorio
+        run: |
+          echo "Gaming Arena"
+          echo "Repositorio descargado correctamente"
+          echo "GitHub Action ejecutada correctamente"
