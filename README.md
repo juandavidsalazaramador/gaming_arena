@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # 🎮 Gaming Arena - Sistema de Gestión y Reservas
 
 Aplicación web para la gestión de reservas de puestos de videojuegos de alto rendimiento (PC Gamer VIP, Consolas 4K y Simuladores de Carreras / VR).
@@ -95,3 +96,8 @@ git commit -m "feat(frontend): implement login, register and dashboard views for
 # 4. Subir la rama a GitHub (cuando JP comparta el remoto)
 git push -u origin feature/frontend-sprint1
 ```
+=======
+# Gaming Arena
+
+Proyecto desarrollado para el Sprint 1.
+>>>>>>> origin/main
