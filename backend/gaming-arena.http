@@ -1,0 +1,338 @@
+### ==============================================================================
+### GAMING ARENA - COLECCIÓN DE PRUEBAS MANUALES (REST CLIENT .http)
+### Endpoints de Sprint 1 y Sprint 2
+### Instrucciones:
+### 1. Inicia el servidor con "npm run dev".
+### 2. Ejecuta las peticiones secuencialmente para almacenar los tokens JWT.
+### ==============================================================================
+
+@baseUrl = http://localhost:4000/api
+@serverUrl = http://localhost:4000
+
+### ------------------------------------------------------------------------------
+### 0. HEALTH CHECK
+### ------------------------------------------------------------------------------
+
+# @name healthCheck
+GET {{serverUrl}}/health
+Content-Type: application/json
+
+
+### ------------------------------------------------------------------------------
+### 1. SPRINT 1: AUTENTICACIÓN, REGISTRO Y DASHBOARD
+### ------------------------------------------------------------------------------
+
+### 1.1 Registro de Cliente Público (Éxito -> 201)
+# @name registrarCliente
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Carlos Gamer",
+  "correo": "carlos.gamer@ejemplo.com",
+  "contraseña": "password123"
+}
+
+### 1.2 Intento de escalada de privilegios en registro público (Seguridad -> Asigna rol cliente -> 201)
+# @name registrarEscaladaIntentada
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Atacante Hacker",
+  "correo": "atacante@ejemplo.com",
+  "contraseña": "password123",
+  "rol": "administrador"
+}
+
+### 1.3 Registro con correo ya existente (Conflicto -> 409)
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Carlos Duplicado",
+  "correo": "carlos.gamer@ejemplo.com",
+  "contraseña": "password123"
+}
+
+### 1.4 Registro con datos inválidos (Validación -> 400)
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "",
+  "correo": "correo-no-valido",
+  "contraseña": "123"
+}
+
+### 1.5 Registro inicial de Administrador (Para pruebas: si aún no existe en tu base de datos)
+### NOTA: Si la BD está vacía, puedes sembrar un admin directamente en MongoDB
+### o autenticarte con un admin preexistente.
+# @name registrarAdminInicial
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+
+{
+  "nombre": "Super Administrador",
+  "correo": "admin@gamingarena.com",
+  "contraseña": "adminPassword123"
+}
+
+### 1.6 Login exitoso de Cliente (Éxito -> 200, guarda token)
+# @name loginCliente
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "carlos.gamer@ejemplo.com",
+  "contraseña": "password123"
+}
+
+### 1.7 Login exitoso de Administrador (Éxito -> 200, guarda token)
+# @name loginAdmin
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "admin@gamingarena.com",
+  "contraseña": "adminPassword123"
+}
+
+### 1.8 Login con contraseña incorrecta (No autorizado -> 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "carlos.gamer@ejemplo.com",
+  "contraseña": "clave_equivocada"
+}
+
+### 1.9 Login con correo inexistente (No autorizado -> 401)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
+
+{
+  "correo": "noexiste@ejemplo.com",
+  "contraseña": "password123"
+}
+
+### 1.10 Dashboard autenticado con token de cliente (Éxito -> 200)
+GET {{baseUrl}}/dashboard
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 1.11 Dashboard sin token (No autorizado -> 401)
+GET {{baseUrl}}/dashboard
+
+
+### ------------------------------------------------------------------------------
+### 2. SPRINT 2: CRD DE USUARIOS
+### ------------------------------------------------------------------------------
+
+### 2.1 Administrador creando a otro Administrador de forma legítima (Éxito -> 201)
+# @name crearAdminPorAdmin
+POST {{baseUrl}}/usuarios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "Admin Secundario",
+  "correo": "admin2@gamingarena.com",
+  "contraseña": "adminPassword123",
+  "rol": "administrador"
+}
+
+### 2.2 Listar todos los usuarios como Administrador (Éxito -> 200)
+# @name listarUsuariosAdmin
+GET {{baseUrl}}/usuarios?page=1&limit=10
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.3 Listar usuarios con búsqueda por texto 'carlos' (Éxito -> 200)
+GET {{baseUrl}}/usuarios?q=carlos
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.4 Listar usuarios filtrando por rol 'administrador' (Éxito -> 200)
+GET {{baseUrl}}/usuarios?rol=administrador
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.5 Listar usuarios siendo Cliente (Prohibido -> 403)
+GET {{baseUrl}}/usuarios
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 2.6 Listar usuarios sin token (No autorizado -> 401)
+GET {{baseUrl}}/usuarios
+
+### 2.7 Obtener usuario por ID siendo Administrador (Éxito -> 200)
+# Sustituye con el ID de un usuario obtenido en el listado
+@idUsuarioCliente = {{loginCliente.response.body.usuario.id}}
+GET {{baseUrl}}/usuarios/{{idUsuarioCliente}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.8 Obtener usuario por ID siendo el propio Cliente (Éxito -> 200)
+GET {{baseUrl}}/usuarios/{{idUsuarioCliente}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 2.9 Cliente intentando consultar el ID de otro usuario (Prohibido -> 403)
+@idUsuarioAdmin = {{loginAdmin.response.body.usuario.id}}
+GET {{baseUrl}}/usuarios/{{idUsuarioAdmin}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 2.10 Obtener usuario con ID de formato inválido (Validación -> 400)
+GET {{baseUrl}}/usuarios/id-invalido-123
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.11 Obtener usuario con ID inexistente pero válido en formato (No encontrado -> 404)
+GET {{baseUrl}}/usuarios/507f1f77bcf86cd799439011
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.12 Administrador intenta eliminarse a sí mismo (Rechazado -> 400)
+DELETE {{baseUrl}}/usuarios/{{idUsuarioAdmin}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.13 Cliente intenta eliminar a un usuario (Prohibido -> 403)
+DELETE {{baseUrl}}/usuarios/{{idUsuarioCliente}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 2.14 Administrador elimina a un usuario correctamente (Éxito -> 200)
+@idUsuarioAEliminar = {{crearAdminPorAdmin.response.body.usuario._id}}
+DELETE {{baseUrl}}/usuarios/{{idUsuarioAEliminar}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 2.15 Eliminar usuario inexistente (No encontrado -> 404)
+DELETE {{baseUrl}}/usuarios/507f1f77bcf86cd799439011
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+
+### ------------------------------------------------------------------------------
+### 3. SPRINT 2: CRD DE SERVICIOS
+### ------------------------------------------------------------------------------
+
+### 3.1 Administrador crea un servicio activo (Éxito -> 201)
+# @name crearServicio1
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "Torneo Semanal Valorant",
+  "descripcion": "Torneo 5v5 con premios en periféricos y consumiciones.",
+  "categoria": "torneo",
+  "precio": 25000,
+  "duracionMinutos": 180,
+  "activo": true
+}
+
+### 3.2 Administrador crea un servicio inactivo (Éxito -> 201)
+# @name crearServicio2Inactivo
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "Alquiler Sala VIP Nocturna (Mantenimiento)",
+  "descripcion": "Acceso a 5 consolas PS5 en cabina privada.",
+  "categoria": "alquiler",
+  "precio": 50000,
+  "duracionMinutos": 120,
+  "activo": false
+}
+
+### 3.3 Administrador crea un servicio de Coaching (Éxito -> 201)
+# @name crearServicio3
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "Sesión de Coaching League of Legends",
+  "descripcion": "Análisis de repeticiones y mecánicas con entrenador máster.",
+  "categoria": "coaching",
+  "precio": 35000,
+  "duracionMinutos": 60,
+  "activo": true
+}
+
+### 3.4 Crear servicio con nombre duplicado (Conflicto -> 409)
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "Torneo Semanal Valorant",
+  "categoria": "torneo",
+  "precio": 30000
+}
+
+### 3.5 Crear servicio con errores de validación (Validación -> 400)
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+{
+  "nombre": "",
+  "categoria": "categoria_inexistente",
+  "precio": -100
+}
+
+### 3.6 Cliente intentando crear un servicio (Prohibido -> 403)
+POST {{baseUrl}}/servicios
+Content-Type: application/json
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+{
+  "nombre": "Torneo de Clientes No Autorizado",
+  "categoria": "torneo",
+  "precio": 10000
+}
+
+### 3.7 Listar servicios siendo Administrador (Ve activos e inactivos -> 200)
+# @name listarServiciosAdmin
+GET {{baseUrl}}/servicios?page=1&limit=10
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.8 Listar servicios siendo Cliente (Solo ve servicios ACTIVOS -> 200)
+# @name listarServiciosCliente
+GET {{baseUrl}}/servicios?page=1&limit=10
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 3.9 Listar servicios filtrando por categoría 'torneo' (Éxito -> 200)
+GET {{baseUrl}}/servicios?categoria=torneo
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.10 Listar servicios buscando por texto 'Coaching' (Éxito -> 200)
+GET {{baseUrl}}/servicios?q=Coaching
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 3.11 Obtener servicio activo por ID (Éxito -> 200)
+@idServicioActivo = {{crearServicio1.response.body.servicio._id}}
+GET {{baseUrl}}/servicios/{{idServicioActivo}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 3.12 Cliente consulta servicio inactivo (No encontrado -> 404)
+@idServicioInactivo = {{crearServicio2Inactivo.response.body.servicio._id}}
+GET {{baseUrl}}/servicios/{{idServicioInactivo}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 3.13 Administrador consulta servicio inactivo (Éxito -> 200)
+GET {{baseUrl}}/servicios/{{idServicioInactivo}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.14 Obtener servicio con ID de formato inválido (Validación -> 400)
+GET {{baseUrl}}/servicios/id-invalido-456
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.15 Obtener servicio con ID inexistente (No encontrado -> 404)
+GET {{baseUrl}}/servicios/507f1f77bcf86cd799439011
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.16 Cliente intenta eliminar servicio (Prohibido -> 403)
+DELETE {{baseUrl}}/servicios/{{idServicioActivo}}
+Authorization: Bearer {{loginCliente.response.body.token}}
+
+### 3.17 Administrador elimina servicio correctamente (Éxito -> 200)
+@idServicioAEliminar = {{crearServicio3.response.body.servicio._id}}
+DELETE {{baseUrl}}/servicios/{{idServicioAEliminar}}
+Authorization: Bearer {{loginAdmin.response.body.token}}
+
+### 3.18 Administrador intenta eliminar servicio inexistente (No encontrado -> 404)
+DELETE {{baseUrl}}/servicios/507f1f77bcf86cd799439011
+Authorization: Bearer {{loginAdmin.response.body.token}}
