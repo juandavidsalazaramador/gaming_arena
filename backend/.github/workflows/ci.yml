@@ -1,0 +1,35 @@
+name: CI - Verificación Continua
+
+on:
+  pull_request:
+    branches:
+      - main
+      - develop
+  push:
+    branches:
+      - main
+      - develop
+
+jobs:
+  verificacion:
+    name: Verificación de Código y Sintaxis
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Clonar código fuente
+        uses: actions/checkout@v4
+
+      - name: Configurar entorno Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: "npm"
+
+      - name: Instalar dependencias del proyecto
+        run: npm ci
+
+      - name: Ejecutar verificación de sintaxis y carga de app
+        run: npm run check
+
+      - name: Ejecutar conjunto de pruebas
+        run: npm test
