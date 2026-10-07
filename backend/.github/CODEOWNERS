@@ -1,0 +1,21 @@
+# ==============================================================================
+# CODEOWNERS - Gaming Arena API Backend
+# Define los revisores obligatorios según los módulos del repositorio.
+# Reemplazar con los usuarios u organizaciones reales de GitHub.
+# ==============================================================================
+
+# Revisores globales por defecto para todo el proyecto
+* @organizacion/backend-leads @tech-lead
+
+# Módulos críticos de seguridad y autorización
+/middlewares/auth.js @organizacion/seguridad-leads @tech-lead
+/middlewares/ @organizacion/backend-leads
+
+# Controladores y modelos de negocio
+/controllers/ @organizacion/backend-devs
+/models/ @organizacion/database-admins @organizacion/backend-devs
+/validators/ @organizacion/backend-devs
+
+# Configuración e infraestructura
+/config/ @organizacion/devops-team @organizacion/backend-leads
+/.github/ @organizacion/devops-team
