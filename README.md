@@ -1,3 +1,3 @@
 # Gaming Arena
 
-Proyecto desarrollado para el Sprint 1.
+Proyecto desarrollado para el Sprint 2.
