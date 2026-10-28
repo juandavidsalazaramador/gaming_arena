@@ -10,6 +10,15 @@ const usuarioSchema = new mongoose.Schema(
       required: [true, "El nombre es obligatorio"],
       trim: true,
     },
+    gamerTag: {
+      type: String,
+      trim: true,
+      minlength: 3,
+      maxlength: 30,
+      match: /^[a-zA-Z0-9_]+$/,
+      unique: true,
+      sparse: true,
+    },
     correo: {
       type: String,
       required: [true, "El correo es obligatorio"],

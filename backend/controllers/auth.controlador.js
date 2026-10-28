@@ -29,6 +29,7 @@ exports.login = async (req, res, next) => {
       {
         id: usuario._id,
         nombre: usuario.nombre,
+        gamerTag: usuario.gamerTag || usuario.correo.split("@")[0],
         correo: usuario.correo,
         rol: usuario.rol,
       },
@@ -43,6 +44,7 @@ exports.login = async (req, res, next) => {
       usuario: {
         id: usuario._id,
         nombre: usuario.nombre,
+        gamerTag: usuario.gamerTag || usuario.correo.split("@")[0],
         correo: usuario.correo,
         rol: usuario.rol,
       },

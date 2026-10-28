@@ -4,7 +4,7 @@ const Usuario = require("../models/Usuario");
 // POST /api/usuarios
 exports.registrar = async (req, res, next) => {
   try {
-    const { nombre, correo, contraseña, rol } = req.body;
+    const { nombre, gamerTag, correo, contraseña, rol } = req.body;
 
     // 7. Verificar que el correo no esté registrado anteriormente
     const correoExiste = await Usuario.findOne({ correo });
@@ -14,7 +14,7 @@ exports.registrar = async (req, res, next) => {
 
     // Crear el usuario. La contraseña se encripta automáticamente
     // gracias al "pre save" del modelo (bcryptjs)
-    const usuario = await Usuario.create({ nombre, correo, contraseña, rol });
+    const usuario = await Usuario.create({ nombre, gamerTag, correo, contraseña, rol });
 
     // Nunca devolvemos la contraseña en la respuesta
     const usuarioRespuesta = usuario.toObject();

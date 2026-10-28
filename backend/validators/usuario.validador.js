@@ -6,6 +6,14 @@ const { body } = require("express-validator");
 const validarRegistro = [
   body("nombre").trim().notEmpty().withMessage("El nombre es obligatorio"),
 
+  body("gamerTag")
+    .optional()
+    .trim()
+    .isLength({ min: 3, max: 30 })
+    .withMessage("El GamerTag debe tener entre 3 y 30 caracteres")
+    .matches(/^[a-zA-Z0-9_]+$/)
+    .withMessage("El GamerTag solo puede contener letras, números y guiones bajos"),
+
   body("correo")
     .trim()
     .notEmpty()
