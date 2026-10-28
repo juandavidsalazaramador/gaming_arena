@@ -10,19 +10,20 @@ document.addEventListener('DOMContentLoaded', () => {
 let currentStations = [];
 let currentReservations = [];
 let editingReservationId = null; // HUS-08: guarda el id de la reserva que se está editando
+let reservationPage = 1;
+let reservationTotalPages = 1;
+let activeReservationsCount = 0;
 
-function initDashboard() {
-  const user = AuthManager.getCurrentUser() || {
-    gamerTag: 'CamiloProGamer',
-    fullName: 'Camilo Aguirre',
-    email: 'camilo@gamingarena.com',
-    tier: 'Rango Platino',
-    coins: 1450
-  };
+async function initDashboard() {
+  const user = AuthManager.getCurrentUser();
+  if (!AuthManager.isAuthenticated() || !user) {
+    AuthManager.clearSession();
+    window.location.href = 'login.html';
+    return;
+  }
 
-  // Cargar datos desde localStorage
-  currentStations = JSON.parse(localStorage.getItem(CONFIG.STATIONS_KEY)) || INITIAL_STATIONS;
-  currentReservations = JSON.parse(localStorage.getItem(CONFIG.RESERVATIONS_KEY)) || INITIAL_RESERVATIONS;
+  currentStations = INITIAL_STATIONS;
+  currentReservations = [];
 
   renderUserHeader(user);
   renderStats(user);
@@ -30,8 +31,9 @@ function initDashboard() {
   renderReservations();
   setupFilterTabs();
   setupBookingModal();
+  setupReservationFilters();
   setupLogout();
-  setupEditButtons(); // HUS-08: conectar botones de editar del historial
+  await loadReservations();
 }
 
 // 1. Cabecera y perfil de usuario
@@ -45,7 +47,7 @@ function renderUserHeader(user) {
   if (nameEl) nameEl.textContent = user.fullName || user.gamerTag;
   if (tagEl) tagEl.textContent = `@${user.gamerTag}`;
   if (tierEl) tierEl.textContent = user.tier || 'Rango Oro';
-  if (coinsEl) coinsEl.textContent = `${user.coins || 0} Coins`;
+  if (coinsEl) coinsEl.textContent = user.coins == null ? '— Coins' : `${user.coins} Coins`;
   if (avatarEl) avatarEl.textContent = (user.gamerTag || 'G').charAt(0).toUpperCase();
 
   const heroWelcome = document.getElementById('hero-welcome-text');
@@ -56,16 +58,14 @@ function renderUserHeader(user) {
 
 // 2. Métricas rápidas
 function renderStats(user) {
-  const activeReservationsCount = currentReservations.filter(r => r.status === 'confirmada' || r.status === 'en curso').length;
-  
   const activeResEl = document.getElementById('stat-active-reservations');
   const totalCoinsEl = document.getElementById('stat-total-coins');
   const hoursPlayedEl = document.getElementById('stat-hours-played');
   const nextSessionEl = document.getElementById('stat-next-session');
 
   if (activeResEl) activeResEl.textContent = activeReservationsCount;
-  if (totalCoinsEl) totalCoinsEl.textContent = `${user.coins || 1450} 🪙`;
-  if (hoursPlayedEl) hoursPlayedEl.textContent = '32.5 hrs';
+  if (totalCoinsEl) totalCoinsEl.textContent = user.coins == null ? '—' : `${user.coins} 🪙`;
+  if (hoursPlayedEl) hoursPlayedEl.textContent = '—';
   
   if (nextSessionEl) {
     const next = currentReservations.find(r => r.status === 'confirmada');
@@ -90,6 +90,7 @@ function renderStations(category = 'all') {
         <p>No se encontraron estaciones en esta categoría.</p>
       </div>
     `;
+    tr.cells[5].textContent = userName;
     return;
   }
 
@@ -122,10 +123,8 @@ function renderStations(category = 'all') {
             <span class="price-amount">$${station.pricePerHour.toLocaleString('es-CO')}</span>
             <span class="price-unit">por hora de juego</span>
           </div>
-          <button class="btn ${isAvailable ? 'btn-primary' : 'btn-outline'} btn-sm btn-book" 
-                  data-id="${station.id}" 
-                  ${!isAvailable ? 'disabled title="Estación ocupada actualmente"' : ''}>
-            ${isAvailable ? 'Reservar 🎮' : 'En Uso'}
+          <button class="btn btn-primary btn-sm btn-book" data-id="${station.id}">
+            Reservar 🎮
           </button>
         </div>
       </div>
@@ -166,11 +165,13 @@ function renderReservations() {
   if (currentReservations.length === 0) {
     tableBody.innerHTML = `
       <tr>
-        <td colspan="6" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
+        <td colspan="8" style="text-align: center; padding: 2.5rem; color: var(--text-muted);">
           No tienes reservas registradas todavía. ¡Elige una estación y vive la experiencia gamer!
         </td>
       </tr>
-    `;
+      `;
+    setupEditButtons();
+    updateReservationPagination();
     return;
   }
 
@@ -178,10 +179,11 @@ function renderReservations() {
     let statusClass = 'badge-cyan';
     if (res.status === 'confirmada') statusClass = 'badge-green';
     if (res.status === 'finalizada') statusClass = 'badge-purple';
-    if (res.status === 'cancelada') statusClass = 'badge-red'; // HUS-09: estado cancelada
+    if (res.status === 'cancelada') statusClass = 'badge-red';
 
-    // HUS-08 y HUS-09: acciones disponibles según el estado
-    const acciones = [];
+    const acciones = [
+      `<button class="btn btn-outline btn-sm btn-detail-res" data-id="${res.id}">Detalle</button>`
+    ];
     if (res.status === 'confirmada') {
       acciones.push(`<button class="btn btn-outline btn-sm btn-edit-res" data-id="${res.id}">Editar ✏️</button>`);
       acciones.push(`<button class="btn btn-danger btn-sm btn-cancel-res" data-id="${res.id}">Cancelar</button>`);
@@ -190,45 +192,148 @@ function renderReservations() {
     const tr = document.createElement('tr');
     tr.innerHTML = `
       <td><strong style="color: var(--text-primary);">${res.id}</strong></td>
-      <td>
-        <span style="font-weight: 600; color: var(--text-primary);">${res.stationName}</span>
-      </td>
+      <td><span style="font-weight: 600; color: var(--text-primary);">${res.stationName}</span></td>
       <td>${res.date} • ${res.time}</td>
       <td>${res.durationHours} hora(s)</td>
-      <td><span style="color: var(--neon-cyan); font-weight: 700;">$${res.totalPrice.toLocaleString('es-CO')}</span></td>
+      <td><span style="color: var(--neon-cyan); font-weight: 700;">$${Number(res.totalPrice).toLocaleString('es-CO')}</span></td>
+      <td class="reservation-user"></td>
       <td><span class="badge ${statusClass}">${res.status.toUpperCase()}</span></td>
       <td>
-        ${acciones.length > 0
-          ? acciones.join(' ')
-          : `<span style="font-size: 0.8rem; color: var(--text-muted);">${res.status === 'cancelada' ? 'Cancelada' : 'Completada'}</span>`
-        }
+        ${acciones.join(' ')}
       </td>
     `;
+    const userName = res.user && res.user.name
+      ? res.user.name
+      : AuthManager.getCurrentUser().fullName;
+    tr.querySelector('.reservation-user').textContent = userName;
     tableBody.appendChild(tr);
   });
 
-  // Cancelar reserva
   tableBody.querySelectorAll('.btn-cancel-res').forEach(btn => {
-    btn.addEventListener('click', () => {
-      const resId = btn.getAttribute('data-id');
-      cancelReservation(resId);
+    btn.addEventListener('click', () => cancelReservation(btn.getAttribute('data-id')));
+  });
+  tableBody.querySelectorAll('.btn-detail-res').forEach(btn => {
+    btn.addEventListener('click', () => showReservationDetails(btn.getAttribute('data-id')));
+  });
+  setupEditButtons();
+  updateReservationPagination();
+}
+
+async function loadReservations() {
+  const tableBody = document.getElementById('reservations-tbody');
+  if (tableBody) {
+    tableBody.innerHTML = '<tr>    <td colspan="8" style="text-align:center; padding:2rem;">Cargando tus reservas...</td></tr>';
+  }
+
+  try {
+    const params = new URLSearchParams({
+      page: String(reservationPage),
+      limit: '10'
     });
+    const search = document.getElementById('reservation-search');
+    const dateFrom = document.getElementById('reservation-date-from');
+    const dateTo = document.getElementById('reservation-date-to');
+    const status = document.getElementById('reservation-status');
+    if (search && search.value.trim()) params.set('q', search.value.trim());
+    if (dateFrom && dateFrom.value) params.set('dateFrom', dateFrom.value);
+    if (dateTo && dateTo.value) params.set('dateTo', dateTo.value);
+    if (status && status.value) params.set('status', status.value);
+
+    const response = await APIClient.get(`/reservations?${params.toString()}`);
+    if (reservationPage > response.totalPaginas) {
+      reservationPage = response.totalPaginas;
+      await loadReservations();
+      return;
+    }
+    currentReservations = response.reservas;
+    reservationTotalPages = response.totalPaginas;
+    activeReservationsCount = response.reservasActivas;
+    renderReservations();
+    renderStats(AuthManager.getCurrentUser());
+  } catch (error) {
+    if (tableBody) {
+      tableBody.innerHTML = '<tr><td colspan="8" style="text-align:center; padding:2rem;"></td></tr>';
+      tableBody.querySelector('td').textContent = error.message;
+    }
+    showToast(error.message, 'error');
+  }
+}
+
+function setupReservationFilters() {
+  const form = document.getElementById('reservation-filters');
+  if (form) {
+    form.addEventListener('submit', event => {
+      event.preventDefault();
+      const dateFrom = document.getElementById('reservation-date-from').value;
+      const dateTo = document.getElementById('reservation-date-to').value;
+      if (dateFrom && dateTo && dateFrom > dateTo) {
+        showToast('La fecha final debe ser igual o posterior a la fecha inicial.', 'warning');
+        return;
+      }
+      reservationPage = 1;
+      loadReservations();
+    });
+  }
+
+  const previous = document.getElementById('reservations-previous');
+  const next = document.getElementById('reservations-next');
+  if (previous) previous.addEventListener('click', () => {
+    if (reservationPage > 1) {
+      reservationPage -= 1;
+      loadReservations();
+    }
+  });
+  if (next) next.addEventListener('click', () => {
+    if (reservationPage < reservationTotalPages) {
+      reservationPage += 1;
+      loadReservations();
+    }
   });
 }
 
-// HUS-09: cancelar reserva solicitando confirmación y cambiando su estado (no se elimina)
-function cancelReservation(id) {
-  if (confirm(`¿Deseas cancelar la reserva ${id}? Esta acción no se puede deshacer.`)) {
-    const reserva = currentReservations.find(r => r.id === id);
-    if (!reserva) {
-      showToast('No se encontró la reserva', 'error');
-      return;
-    }
-    reserva.status = 'cancelada'; // cambia el estado, no se elimina
-    localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(currentReservations));
-    renderReservations();
-    renderStats(AuthManager.getCurrentUser());
-    showToast(`Reserva ${id} cancelada`, 'info');
+function updateReservationPagination() {
+  const pageLabel = document.getElementById('reservations-page-label');
+  const previous = document.getElementById('reservations-previous');
+  const next = document.getElementById('reservations-next');
+  if (pageLabel) pageLabel.textContent = `Página ${reservationPage} de ${reservationTotalPages}`;
+  if (previous) previous.disabled = reservationPage <= 1;
+  if (next) next.disabled = reservationPage >= reservationTotalPages;
+}
+
+async function showReservationDetails(id) {
+  try {
+    const response = await APIClient.get(`/reservations/${encodeURIComponent(id)}`);
+    const reserva = response.reserva;
+    alert(
+      `Reserva ${reserva.id}\n` +
+      `Estación: ${reserva.stationName}\n` +
+      `Fecha: ${reserva.date}\n` +
+      `Hora: ${reserva.time}\n` +
+      `Duración: ${reserva.durationHours} hora(s)\n` +
+      `Valor: $${Number(reserva.totalPrice).toLocaleString('es-CO')} COP\n` +
+      `Estado: ${reserva.status}\n` +
+      `Observaciones: ${reserva.observations || 'Sin observaciones'}`
+    );
+  } catch (error) {
+    showToast(error.message, 'error');
+  }
+}
+
+async function cancelReservation(id) {
+  const reserva = currentReservations.find(r => r.id === id);
+  if (!reserva) {
+    showToast('No se encontró la reserva', 'error');
+    return;
+  }
+  const confirmacion = `¿Deseas cancelar la reserva ${id}?\n\n${reserva.stationName}\n${reserva.date} • ${reserva.time}`;
+  if (!confirm(confirmacion)) return;
+
+  try {
+    const response = await APIClient.patch(`/reservations/${encodeURIComponent(id)}/cancel`);
+    await loadReservations();
+    showToast(response.mensaje, 'success');
+  } catch (error) {
+    showToast(error.message, 'error');
   }
 }
 
@@ -277,17 +382,19 @@ function setupBookingModal() {
   // Actualizar cálculo de precio al cambiar estación o duración
   const stationSelect = document.getElementById('book-station');
   const durationSelect = document.getElementById('book-duration');
+  const dateInput = document.getElementById('book-date');
 
   if (stationSelect && durationSelect) {
     stationSelect.addEventListener('change', updateModalPrice);
     durationSelect.addEventListener('change', updateModalPrice);
   }
+  if (dateInput) dateInput.addEventListener('change', updateTimeOptions);
 
   // Enviar reserva
   if (bookingForm) {
-    bookingForm.addEventListener('submit', (e) => {
+    bookingForm.addEventListener('submit', async (e) => {
       e.preventDefault();
-      createReservation();
+      await createReservation();
     });
   }
 }
@@ -300,15 +407,11 @@ function openBookingModal(preselectedStationId = null, reservaAEditar = null) {
   const dateInput = document.getElementById('book-date');
   const timeSelect = document.getElementById('book-time');
   const durationSelect = document.getElementById('book-duration');
+  const observationsInput = document.getElementById('book-observations');
+  if (!reservaAEditar) editingReservationId = null;
 
-  // HUS-08: al editar, incluir la estación de la reserva aunque hoy esté ocupada
-  const estacionesDisponibles = currentStations.filter(s =>
-    s.status === 'disponible' || (reservaAEditar && s.id === reservaAEditar.stationId)
-  );
-
-  // Llenar select de estaciones disponibles
   if (stationSelect) {
-    stationSelect.innerHTML = estacionesDisponibles
+    stationSelect.innerHTML = currentStations
       .map(s => `
         <option value="${s.id}" ${preselectedStationId === s.id ? 'selected' : ''}>
           ${s.name} - $${s.pricePerHour.toLocaleString('es-CO')}/h
@@ -319,30 +422,64 @@ function openBookingModal(preselectedStationId = null, reservaAEditar = null) {
   if (reservaAEditar) {
     if (modalTitle) modalTitle.textContent = 'Editar Reserva ✏️';
     if (submitBtn) submitBtn.textContent = 'Guardar Cambios 💾';
-    if (dateInput) dateInput.value = reservaAEditar.dateRaw || new Date().toISOString().split('T')[0];
+    if (dateInput) {
+      dateInput.value = reservaAEditar.dateRaw || getLocalDate();
+      dateInput.min = getLocalDate();
+    }
     if (timeSelect && reservaAEditar.time) {
       const horaInicio = reservaAEditar.time.split(' - ')[0];
       const opcion = timeSelect.querySelector(`option[value^="${horaInicio}"]`);
       if (opcion) timeSelect.value = opcion.value;
     }
     if (durationSelect) durationSelect.value = String(reservaAEditar.durationHours || 2);
+    if (observationsInput) observationsInput.value = reservaAEditar.observations || '';
   } else {
-    // Modo creacion: titulo original y fecha de hoy por defecto
     if (modalTitle) modalTitle.textContent = 'Reservar Estación Gamer 🎮';
     if (submitBtn) submitBtn.textContent = 'Confirmar Reserva 🚀';
     if (dateInput) {
-      const today = new Date().toISOString().split('T')[0];
+      const today = getLocalDate();
       dateInput.value = today;
       dateInput.min = today;
     }
+    if (observationsInput) observationsInput.value = '';
   }
+  updateTimeOptions();
   updateModalPrice();
   if (modal) {
     modal.classList.add('active');
   }
 }
 
+function getLocalDate() {
+  const today = new Date();
+  const year = today.getFullYear();
+  const month = String(today.getMonth() + 1).padStart(2, '0');
+  const day = String(today.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+function updateTimeOptions() {
+  const dateInput = document.getElementById('book-date');
+  const timeSelect = document.getElementById('book-time');
+  if (!dateInput || !timeSelect) return;
+
+  const selectedDate = dateInput.value;
+  const now = new Date();
+  const currentHour = now.getHours();
+  const currentMinute = now.getMinutes();
+  Array.from(timeSelect.options).forEach(option => {
+    const hour = Number(option.value.slice(0, 2));
+    option.disabled = selectedDate === getLocalDate() &&
+      (hour < currentHour || (hour === currentHour && currentMinute > 0));
+  });
+  if (timeSelect.selectedOptions[0] && timeSelect.selectedOptions[0].disabled) {
+    const firstFutureTime = Array.from(timeSelect.options).find(option => !option.disabled);
+    if (firstFutureTime) timeSelect.value = firstFutureTime.value;
+  }
+}
+
 function closeBookingModal() {
+  editingReservationId = null;
   const modal = document.getElementById('booking-modal');
   if (modal) {
     modal.classList.remove('active');
@@ -366,11 +503,12 @@ function updateModalPrice() {
 }
 
 // HUS-06 y HUS-08: crear o actualizar una reserva según el modo del modal
-function createReservation() {
+async function createReservation() {
   const stationSelect = document.getElementById('book-station');
   const dateInput = document.getElementById('book-date');
   const timeSelect = document.getElementById('book-time');
   const durationSelect = document.getElementById('book-duration');
+  const observationsInput = document.getElementById('book-observations');
 
   // Validaciones (HUS-06 / HUS-08)
   if (!stationSelect.value) {
@@ -381,9 +519,7 @@ function createReservation() {
     showToast('Selecciona una fecha para la reserva', 'warning');
     return;
   }
-  const fechaSeleccionada = new Date(dateInput.value + 'T00:00:00');
-  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
-  if (fechaSeleccionada < hoy) {
+  if (dateInput.value < getLocalDate()) {
     showToast('No puedes reservar en una fecha pasada', 'error');
     return;
   }
@@ -395,60 +531,33 @@ function createReservation() {
   }
 
   const hours = parseInt(durationSelect.value, 10);
-  const total = station.pricePerHour * hours;
-
-  // HUS-08: si hay una reserva en edición, actualizar sus datos
-  if (editingReservationId) {
-    const reserva = currentReservations.find(r => r.id === editingReservationId);
-    if (reserva) {
-      reserva.stationId = station.id;
-      reserva.stationName = station.name;
-      reserva.date = dateInput.value;
-      reserva.dateRaw = dateInput.value;
-      reserva.time = timeSelect.value;
-      reserva.durationHours = hours;
-      reserva.totalPrice = total;
-      localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(currentReservations));
-      showToast(`Reserva ${reserva.id} actualizada correctamente`, 'success');
-    }
-    editingReservationId = null;
-    closeBookingModal();
-    renderReservations();
-    renderStats(AuthManager.getCurrentUser());
-    return;
-  }
-
-  // HUS-06: crear una reserva nueva
-  const newId = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
-
-  const newRes = {
-    id: newId,
+  const payload = {
     stationId: station.id,
-    stationName: station.name,
     date: dateInput.value,
-    dateRaw: dateInput.value,
     time: timeSelect.value,
     durationHours: hours,
-    totalPrice: total,
-    status: 'confirmada'
+    observations: observationsInput ? observationsInput.value.trim() : ''
   };
+  const submitBtn = document.getElementById('btn-submit-booking');
+  const originalText = submitBtn.textContent;
+  if (editingReservationId && !confirm('¿Está seguro de actualizar esta reserva?')) return;
 
-  currentReservations.unshift(newRes);
-  localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(currentReservations));
-
-  // Otorgar 50 coins por reservar
-  const user = AuthManager.getCurrentUser();
-  if (user) {
-    user.coins = (user.coins || 0) + 50;
-    AuthManager.setCurrentUser(user);
-    renderUserHeader(user);
+  submitBtn.disabled = true;
+  submitBtn.textContent = editingReservationId ? 'Guardando cambios...' : 'Creando reserva...';
+  try {
+    const response = editingReservationId
+      ? await APIClient.put(`/reservations/${encodeURIComponent(editingReservationId)}`, payload)
+      : await APIClient.post('/reservations', payload);
+    editingReservationId = null;
+    closeBookingModal();
+    await loadReservations();
+    showToast(response.mensaje, 'success');
+  } catch (error) {
+    showToast(error.message, 'error');
+  } finally {
+    submitBtn.disabled = false;
+    submitBtn.textContent = originalText;
   }
-
-  closeBookingModal();
-  renderReservations();
-  renderStats(user);
-
-  showToast(`¡Reserva ${newId} confirmada exitosamente! Ganaste +50 Coins 🪙`, 'success');
 }
 
 // 7. Cerrar sesión

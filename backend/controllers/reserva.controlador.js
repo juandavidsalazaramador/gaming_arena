@@ -96,8 +96,9 @@ exports.listar = async (req, res, next) => {
       if (termino) filtro.estacionNombre = { $regex: termino, $options: "i" };
     }
 
-    const [total, reservas] = await Promise.all([
+    const [total, reservasActivas, reservas] = await Promise.all([
       Reserva.countDocuments(filtro),
+      Reserva.countDocuments({ usuario: req.user.id, estado: "confirmada" }),
       Reserva.find(filtro)
         .select("-__v -clavesHorario")
         .populate("usuario", "nombre correo")
@@ -110,6 +111,7 @@ exports.listar = async (req, res, next) => {
       mensaje: "Reservas obtenidas correctamente",
       reservas: reservas.map(formatearReserva),
       total,
+      reservasActivas,
       pagina: page,
       totalPaginas: Math.ceil(total / limit) || 1,
     });

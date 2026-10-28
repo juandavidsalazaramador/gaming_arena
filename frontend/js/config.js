@@ -1,14 +1,67 @@
 /* ========================================================
-   GAMING ARENA - CONFIG & UTILITIES (SPRINT 1)
+   GAMING ARENA - CONFIG & UTILITIES
    ======================================================== */
 
-// Configuración de endpoints (Preparado para conectar con Node.js + Express en Backend)
 const CONFIG = {
-  API_BASE_URL: 'http://localhost:5000/api', // Ruta de la API de Node.js
+  API_BASE_URL: 'http://localhost:4000/api',
   AUTH_TOKEN_KEY: 'gaming_arena_token',
-  USER_DATA_KEY: 'gaming_arena_user',
-  RESERVATIONS_KEY: 'gaming_arena_reservations',
-  STATIONS_KEY: 'gaming_arena_stations'
+  USER_DATA_KEY: 'gaming_arena_user'
+};
+
+const APIClient = {
+  async request(path, options = {}) {
+    const headers = { 'Content-Type': 'application/json', ...options.headers };
+    const token = localStorage.getItem(CONFIG.AUTH_TOKEN_KEY);
+    if (token) headers.Authorization = `Bearer ${token}`;
+
+    let response;
+    try {
+      response = await fetch(`${CONFIG.API_BASE_URL}${path}`, {
+        ...options,
+        headers
+      });
+    } catch (error) {
+      throw new Error('No fue posible conectar con Gaming Arena. Verifica que el backend esté ejecutándose.');
+    }
+
+    let data;
+    try {
+      data = await response.json();
+    } catch (error) {
+      throw new Error('El servidor devolvió una respuesta inválida.');
+    }
+
+    if (!response.ok) {
+      if (response.status === 401 && token) {
+        AuthManager.clearSession();
+        if (window.location.pathname.endsWith('/dashboard.html')) {
+          window.location.href = 'login.html';
+        }
+      }
+      const validationErrors = Array.isArray(data.errores)
+        ? data.errores.map(item => item.mensaje).join('. ')
+        : '';
+      throw new Error(validationErrors || data.mensaje || data.message || 'La solicitud no pudo completarse.');
+    }
+
+    return data;
+  },
+
+  get(path) {
+    return this.request(path);
+  },
+
+  post(path, body) {
+    return this.request(path, { method: 'POST', body: JSON.stringify(body) });
+  },
+
+  put(path, body) {
+    return this.request(path, { method: 'PUT', body: JSON.stringify(body) });
+  },
+
+  patch(path) {
+    return this.request(path, { method: 'PATCH' });
+  }
 };
 
 // Notificaciones Toast flotantes
@@ -30,10 +83,13 @@ function showToast(message, type = 'info', duration = 3500) {
     info: '🎮'
   };
 
-  toast.innerHTML = `
-    <span>${iconMap[type] || '⚡'}</span>
-    <span style="flex: 1; font-weight: 500;">${message}</span>
-  `;
+  const icon = document.createElement('span');
+  icon.textContent = iconMap[type] || '⚡';
+  const text = document.createElement('span');
+  text.style.flex = '1';
+  text.style.fontWeight = '500';
+  text.textContent = message;
+  toast.append(icon, text);
 
   container.appendChild(toast);
 
@@ -55,9 +111,15 @@ const AuthManager = {
     }
   },
 
-  setCurrentUser(userData, token = 'mock_jwt_token_' + Date.now()) {
+  setCurrentUser(userData, token) {
+    if (!token) throw new Error('El token de autenticación es obligatorio.');
     localStorage.setItem(CONFIG.USER_DATA_KEY, JSON.stringify(userData));
     localStorage.setItem(CONFIG.AUTH_TOKEN_KEY, token);
+  },
+
+  clearSession() {
+    localStorage.removeItem(CONFIG.USER_DATA_KEY);
+    localStorage.removeItem(CONFIG.AUTH_TOKEN_KEY);
   },
 
   isAuthenticated() {
@@ -65,8 +127,7 @@ const AuthManager = {
   },
 
   logout() {
-    localStorage.removeItem(CONFIG.USER_DATA_KEY);
-    localStorage.removeItem(CONFIG.AUTH_TOKEN_KEY);
+    this.clearSession();
     showToast('Sesión cerrada correctamente', 'info');
     setTimeout(() => {
       window.location.href = 'login.html';
@@ -80,7 +141,7 @@ const AuthManager = {
   },
 
   redirectIfAuthenticated() {
-    if (this.isAuthenticated()) {
+    if (this.isAuthenticated() && this.getCurrentUser()) {
       window.location.href = 'dashboard.html';
     }
   }
@@ -143,50 +204,3 @@ const INITIAL_STATIONS = [
     image: 'https://images.unsplash.com/photo-1592478411213-6153e4ebc07d?auto=format&fit=crop&w=700&q=80'
   }
 ];
-
-// Reservas iniciales de demostración
-const INITIAL_RESERVATIONS = [
-  {
-    id: 'RES-8921',
-    stationId: 'pc-01',
-    stationName: 'PC Master Race #01 (VIP)',
-    date: 'Hoy',
-    time: '18:00 - 20:00',
-    durationHours: 2,
-    totalPrice: 24000,
-    status: 'confirmada' // confirmada, en curso, finalizada
-  },
-  {
-    id: 'RES-8919',
-    stationId: 'console-01',
-    stationName: 'PlayStation 5 Lounge 4K',
-    date: 'Ayer',
-    time: '16:00 - 18:00',
-    durationHours: 2,
-    totalPrice: 18000,
-    status: 'finalizada'
-  }
-];
-
-// Inicializar almacenamiento local si no existe
-function initLocalStorageData() {
-  if (!localStorage.getItem(CONFIG.STATIONS_KEY)) {
-    localStorage.setItem(CONFIG.STATIONS_KEY, JSON.stringify(INITIAL_STATIONS));
-  }
-  if (!localStorage.getItem(CONFIG.RESERVATIONS_KEY)) {
-    localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(INITIAL_RESERVATIONS));
-  }
-  // Si no hay usuario activo, crear uno por defecto para visualización directa
-  if (!AuthManager.getCurrentUser()) {
-    AuthManager.setCurrentUser({
-      gamerTag: 'CamiloProGamer',
-      fullName: 'Camilo Aguirre',
-      email: 'camilo@gamingarena.com',
-      tier: 'Rango Platino',
-      coins: 1450,
-      avatarUrl: ''
-    });
-  }
-}
-
-initLocalStorageData();

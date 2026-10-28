@@ -52,11 +52,10 @@ function setupLoginForm() {
   function validateLoginEmail() {
     const val = emailInput.value.trim();
     if (!val) {
-      setFieldError(emailInput, 'login-email-error', 'El correo o GamerTag es obligatorio');
+      setFieldError(emailInput, 'login-email-error', 'El correo electrónico es obligatorio');
       return false;
     }
-    // Si contiene @, validar formato de correo
-    if (val.includes('@') && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) {
       setFieldError(emailInput, 'login-email-error', 'Ingresa un correo electrónico válido');
       return false;
     }
@@ -78,7 +77,7 @@ function setupLoginForm() {
     return true;
   }
 
-  loginForm.addEventListener('submit', (e) => {
+  loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const isEmailValid = validateLoginEmail();
@@ -89,31 +88,26 @@ function setupLoginForm() {
       return;
     }
 
-    const emailOrTag = emailInput.value.trim();
     const submitBtn = loginForm.querySelector('button[type="submit"]');
     const originalText = submitBtn.innerHTML;
 
-    // Estado de carga visual gamer
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span>Iniciando sesión...</span> 🎮`;
 
-    setTimeout(() => {
-      // Simular login exitoso o recuperación de usuario
-      const existingUser = AuthManager.getCurrentUser() || {
-        gamerTag: emailOrTag.includes('@') ? emailOrTag.split('@')[0] : emailOrTag,
-        fullName: 'Jugador Arena',
-        email: emailOrTag.includes('@') ? emailOrTag : `${emailOrTag}@gamingarena.com`,
-        tier: 'Rango Élite',
-        coins: 1200
-      };
-
-      AuthManager.setCurrentUser(existingUser);
-      showToast(`¡Bienvenido de vuelta, ${existingUser.gamerTag}!`, 'success');
-
-      setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 1000);
-    }, 900);
+    try {
+      const response = await APIClient.post('/auth/login', {
+        correo: emailInput.value.trim(),
+        contraseña: passwordInput.value
+      });
+      AuthManager.setCurrentUser(mapApiUser(response.usuario), response.token);
+      showToast(`¡Bienvenido de vuelta, ${response.usuario.gamerTag}!`, 'success');
+      window.location.href = 'dashboard.html';
+    } catch (error) {
+      showToast(error.message, 'error');
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
   });
 }
 
@@ -268,7 +262,7 @@ function setupRegisterForm() {
     return true;
   }
 
-  registerForm.addEventListener('submit', (e) => {
+  registerForm.addEventListener('submit', async (e) => {
     e.preventDefault();
 
     const isTagValid = validateTag();
@@ -284,27 +278,52 @@ function setupRegisterForm() {
     }
 
     const submitBtn = registerForm.querySelector('button[type="submit"]');
+    const originalText = submitBtn.innerHTML;
     submitBtn.disabled = true;
     submitBtn.innerHTML = `<span>Creando tu cuenta gamer...</span> 🎮`;
 
-    setTimeout(() => {
-      // Guardar usuario registrado
-      const newUser = {
+    try {
+      await APIClient.post('/usuarios', {
         gamerTag: tagInput.value.trim(),
-        fullName: nameInput.value.trim(),
-        email: emailInput.value.trim(),
-        tier: 'Rango Novato',
-        coins: 500 // Bonificación de bienvenida
-      };
+        nombre: nameInput.value.trim(),
+        correo: emailInput.value.trim(),
+        contraseña: passwordInput.value
+      });
+    } catch (error) {
+      showToast(error.message, 'error');
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+      return;
+    }
 
-      AuthManager.setCurrentUser(newUser);
-      showToast('¡Cuenta creada con éxito! Tienes 500 Arena Coins de bienvenida 🪙', 'success');
-
-      setTimeout(() => {
-        window.location.href = 'dashboard.html';
-      }, 1200);
-    }, 1000);
+    try {
+      const response = await APIClient.post('/auth/login', {
+        correo: emailInput.value.trim(),
+        contraseña: passwordInput.value
+      });
+      AuthManager.setCurrentUser(mapApiUser(response.usuario), response.token);
+      showToast('¡Cuenta creada correctamente! Bienvenido a Gaming Arena.', 'success');
+      window.location.href = 'dashboard.html';
+    } catch (error) {
+      showToast(`Cuenta creada. Inicia sesión para continuar: ${error.message}`, 'warning');
+      window.location.href = 'login.html';
+    } finally {
+      submitBtn.disabled = false;
+      submitBtn.innerHTML = originalText;
+    }
   });
+}
+
+function mapApiUser(user) {
+  return {
+    id: user.id,
+    gamerTag: user.gamerTag || user.correo.split('@')[0],
+    fullName: user.nombre,
+    email: user.correo,
+    role: user.rol,
+    tier: user.rol === 'administrador' ? 'Administrador' : 'Jugador',
+    coins: null
+  };
 }
 
 // Helpers visuales de validación

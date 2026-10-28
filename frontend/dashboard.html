@@ -31,7 +31,7 @@
       <div class="nav-user-panel">
         <div class="coins-badge" title="Tus Arena Coins acumuladas">
           <span>🪙</span>
-          <span id="user-display-coins">1,450 Coins</span>
+          <span id="user-display-coins">— Coins</span>
         </div>
 
         <div class="user-profile-pill">
@@ -81,8 +81,8 @@
         <div class="stat-icon cyan">📅</div>
         <div class="stat-details">
           <span class="stat-label">Reservas Activas</span>
-          <span class="stat-value" id="stat-active-reservations">1</span>
-          <span class="stat-meta">Válidas para hoy</span>
+          <span class="stat-value" id="stat-active-reservations">0</span>
+          <span class="stat-meta">Reservas confirmadas</span>
         </div>
       </article>
 
@@ -90,8 +90,8 @@
         <div class="stat-icon purple">🪙</div>
         <div class="stat-details">
           <span class="stat-label">Saldo de Puntos</span>
-          <span class="stat-value" id="stat-total-coins">1,450 🪙</span>
-          <span class="stat-meta">+50 pts por cada reserva</span>
+          <span class="stat-value" id="stat-total-coins">—</span>
+          <span class="stat-meta">Dato no disponible</span>
         </div>
       </article>
 
@@ -99,8 +99,8 @@
         <div class="stat-icon green">⏱️</div>
         <div class="stat-details">
           <span class="stat-label">Horas en Arena</span>
-          <span class="stat-value" id="stat-hours-played">32.5 hrs</span>
-          <span class="stat-meta">Nivel de fidelidad alto</span>
+          <span class="stat-value" id="stat-hours-played">—</span>
+          <span class="stat-meta">Dato no disponible</span>
         </div>
       </article>
 
@@ -151,6 +151,31 @@
         </div>
       </div>
 
+      <form id="reservation-filters" class="reservation-filters" style="display: flex; flex-wrap: wrap; gap: 0.75rem; align-items: end; margin: 1rem 0;">
+        <div class="form-group" style="margin: 0; min-width: 180px;">
+          <label for="reservation-search" class="form-label">Buscar estación</label>
+          <input id="reservation-search" type="search" class="form-control no-icon" placeholder="Nombre de la estación">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label for="reservation-date-from" class="form-label">Desde</label>
+          <input id="reservation-date-from" type="date" class="form-control no-icon">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label for="reservation-date-to" class="form-label">Hasta</label>
+          <input id="reservation-date-to" type="date" class="form-control no-icon">
+        </div>
+        <div class="form-group" style="margin: 0;">
+          <label for="reservation-status" class="form-label">Estado</label>
+          <select id="reservation-status" class="form-control no-icon">
+            <option value="">Todos</option>
+            <option value="confirmada">Confirmada</option>
+            <option value="finalizada">Finalizada</option>
+            <option value="cancelada">Cancelada</option>
+          </select>
+        </div>
+        <button type="submit" class="btn btn-primary btn-sm">Filtrar</button>
+      </form>
+
       <div class="table-responsive">
         <table class="arena-table">
           <thead>
@@ -160,6 +185,7 @@
               <th scope="col">Fecha & Horario</th>
               <th scope="col">Duración</th>
               <th scope="col">Valor Total</th>
+              <th scope="col">Usuario</th>
               <th scope="col">Estado</th>
               <th scope="col">Acción</th>
             </tr>
@@ -168,6 +194,11 @@
             <!-- Renderizado dinámicamente por dashboard.js -->
           </tbody>
         </table>
+      </div>
+      <div style="display: flex; align-items: center; justify-content: center; gap: 1rem; margin-top: 1rem;">
+        <button id="reservations-previous" type="button" class="btn btn-outline btn-sm" disabled>Anterior</button>
+        <span id="reservations-page-label" aria-live="polite">Página 1 de 1</span>
+        <button id="reservations-next" type="button" class="btn btn-outline btn-sm" disabled>Siguiente</button>
       </div>
     </section>
 
@@ -223,11 +254,16 @@
             </select>
           </div>
 
+          <div class="form-group">
+            <label for="book-observations" class="form-label">Observaciones (opcional)</label>
+            <textarea id="book-observations" class="form-control no-icon" rows="3" maxlength="500" placeholder="Agrega una nota para tu reserva"></textarea>
+          </div>
+
           <!-- Resumen de Costo -->
           <div class="booking-summary-box">
             <div>
               <span class="summary-label">Total a Pagar en Caja / QR:</span>
-              <div style="font-size: 0.78rem; color: var(--neon-cyan);">¡Recibes +50 Arena Coins! 🪙</div>
+              <div style="font-size: 0.78rem; color: var(--neon-cyan);">Tarifa calculada por el backend</div>
             </div>
             <div id="modal-total-price" class="summary-price">$24.000 COP</div>
           </div>

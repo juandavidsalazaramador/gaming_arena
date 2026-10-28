@@ -134,12 +134,14 @@ Solo las reservas confirmadas se pueden editar o cancelar. Los conflictos
 concurrentes también quedan protegidos por un índice único de bloques en MongoDB.
 
 La respuesta serializada incluye `id`, `stationId`, `stationName`, `date`,
-`dateRaw`, `time`, `durationHours`, `totalPrice` y `status`, campos usados por
-la tabla y el modal actuales. Sin embargo, el frontend presente todavía simula
-el inicio de sesión y mantiene reservas en `localStorage`; no invoca estos
-endpoints ni genera un JWT real. Para que las reservas se persistan desde la
-interfaz, el flujo frontend de autenticación y las acciones del dashboard deben
-conectarse a la API.
+`dateRaw`, `time`, `durationHours`, `totalPrice`, `status`, `observations` y
+`user`, compatibles con el dashboard. El frontend integrado obtiene el token
+JWT mediante `/api/auth/login`, registra cuentas en `/api/usuarios` y consume
+los endpoints de reservas para todas las operaciones. El cliente configura la
+URL base en `frontend/js/config.js` (por defecto `http://localhost:4000/api`),
+que coincide con el puerto predeterminado del backend. El saldo de Coins y las
+horas jugadas no se muestran como datos reales porque todavía no existen en la
+API.
 
 ---
 

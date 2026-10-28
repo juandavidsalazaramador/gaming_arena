@@ -4,6 +4,7 @@ const { validationResult } = require("express-validator");
 
 const estaciones = require("../config/estaciones");
 const { validarDatosReserva, validarListadoReservas } = require("../validators/reserva.validador");
+const { validarRegistro } = require("../validators/usuario.validador");
 const { crearClavesHorario, formatearReserva } = require("../utils/reservas");
 
 test("el catálogo backend conserva IDs, nombres y precios del dashboard", () => {
@@ -43,6 +44,40 @@ test("el filtro de fecha permite dateFrom sin exigir dateTo", async () => {
   await Promise.all(validarListadoReservas.map((validator) => validator.run(req)));
 
   assert.deepEqual(validationResult(req).array(), []);
+});
+
+test("el registro acepta el GamerTag enviado por el frontend", async () => {
+  const req = {
+    body: {
+      gamerTag: "ArenaPlayer_1",
+      nombre: "Jugador Arena",
+      correo: "player@example.com",
+      contraseña: "secret123",
+    },
+    params: {},
+    query: {},
+  };
+  await Promise.all(validarRegistro.map((validator) => validator.run(req)));
+
+  assert.deepEqual(validationResult(req).array(), []);
+  assert.equal(req.body.gamerTag, "ArenaPlayer_1");
+  assert.equal(req.body.correo, "player@example.com");
+});
+
+test("el registro rechaza GamerTags que no coinciden con la regla visual", async () => {
+  const req = {
+    body: {
+      gamerTag: "player with spaces",
+      nombre: "Jugador Arena",
+      correo: "player@example.com",
+      contraseña: "secret123",
+    },
+    params: {},
+    query: {},
+  };
+  await Promise.all(validarRegistro.map((validator) => validator.run(req)));
+
+  assert.equal(validationResult(req).isEmpty(), false);
 });
 
 test("los bloques horarios identifican solapamientos entre reservas", () => {
