@@ -7,5 +7,6 @@ const router = Router();
 router.use("/usuarios", require("./usuario.routes"));    // POST /api/usuarios
 router.use("/auth", require("./auth.routes"));           // POST /api/auth/login
 router.use("/dashboard", require("./dashboard.routes")); // GET /api/dashboard
+router.use("/reservations", require("./reserva.routes")); // CRUD /api/reservations
 
 module.exports = router;

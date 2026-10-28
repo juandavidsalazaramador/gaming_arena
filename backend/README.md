@@ -107,6 +107,42 @@ Configura los valores correspondientes en tu `.env`:
 
 ---
 
+### 📅 Reservas de estaciones (HUS-06 a HUS-09)
+
+Todos los endpoints requieren autenticación JWT y operan únicamente sobre las
+reservas del usuario autenticado. El backend usa el catálogo de
+estaciones y los precios definidos para Gaming Arena (`pc-01`, `pc-02`,
+`console-01`, `console-02`, `sim-01` y `vr-01`), coincidentes con el catálogo
+actual del dashboard.
+
+| Método | Ruta | Descripción | Códigos HTTP |
+|:------:|:-----|:------------|:------------:|
+| `POST` | `/api/reservations` | Crear reserva comprobando fecha/hora y evitando solapamientos | `201`, `400`, `401`, `409` |
+| `GET` | `/api/reservations` | Listar reservas propias; filtros `page`, `limit`, `dateFrom`, `dateTo`, `status`, `q` | `200`, `400`, `401` |
+| `GET` | `/api/reservations/:id` | Consultar detalle (404 si no pertenece al usuario) | `200`, `400`, `401`, `404` |
+| `PUT` | `/api/reservations/:id` | Modificar estación, fecha, hora, duración u observaciones | `200`, `400`, `401`, `404`, `409` |
+| `PATCH` | `/api/reservations/:id/cancel` | Cancelar reserva y liberar sus bloques horarios | `200`, `401`, `404`, `409` |
+
+El cuerpo de creación y actualización conserva el contrato del formulario
+actual: `stationId`, `date` (`YYYY-MM-DD`), `time` (por ejemplo
+`18:00 - 19:00`), `durationHours` (1 a 4) y, opcionalmente, `observations`.
+El precio y el nombre se obtienen del catálogo del servidor, no de valores
+enviados por el navegador. Las horas disponibles son las franjas existentes en
+el formulario (14:00, 16:00, 18:00, 20:00 y 22:00); la disponibilidad cubre
+todas las horas de duración y rechaza reservas pasadas, duplicadas o solapadas.
+Solo las reservas confirmadas se pueden editar o cancelar. Los conflictos
+concurrentes también quedan protegidos por un índice único de bloques en MongoDB.
+
+La respuesta serializada incluye `id`, `stationId`, `stationName`, `date`,
+`dateRaw`, `time`, `durationHours`, `totalPrice` y `status`, campos usados por
+la tabla y el modal actuales. Sin embargo, el frontend presente todavía simula
+el inicio de sesión y mantiene reservas en `localStorage`; no invoca estos
+endpoints ni genera un JWT real. Para que las reservas se persistan desde la
+interfaz, el flujo frontend de autenticación y las acciones del dashboard deben
+conectarse a la API.
+
+---
+
 ## 🛡️ Mejoras de Seguridad Implementadas en Sprint 2
 
 1. **Corrección del Validador de Rol (`requireRole`):**
