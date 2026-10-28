@@ -9,6 +9,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
 let currentStations = [];
 let currentReservations = [];
+let editingReservationId = null; // HUS-08: guarda el id de la reserva que se está editando
 
 function initDashboard() {
   const user = AuthManager.getCurrentUser() || {
@@ -30,6 +31,7 @@ function initDashboard() {
   setupFilterTabs();
   setupBookingModal();
   setupLogout();
+  setupEditButtons(); // HUS-08: conectar botones de editar del historial
 }
 
 // 1. Cabecera y perfil de usuario
@@ -176,6 +178,14 @@ function renderReservations() {
     let statusClass = 'badge-cyan';
     if (res.status === 'confirmada') statusClass = 'badge-green';
     if (res.status === 'finalizada') statusClass = 'badge-purple';
+    if (res.status === 'cancelada') statusClass = 'badge-red'; // HUS-09: estado cancelada
+
+    // HUS-08 y HUS-09: acciones disponibles según el estado
+    const acciones = [];
+    if (res.status === 'confirmada') {
+      acciones.push(`<button class="btn btn-outline btn-sm btn-edit-res" data-id="${res.id}">Editar ✏️</button>`);
+      acciones.push(`<button class="btn btn-danger btn-sm btn-cancel-res" data-id="${res.id}">Cancelar</button>`);
+    }
 
     const tr = document.createElement('tr');
     tr.innerHTML = `
@@ -188,13 +198,10 @@ function renderReservations() {
       <td><span style="color: var(--neon-cyan); font-weight: 700;">$${res.totalPrice.toLocaleString('es-CO')}</span></td>
       <td><span class="badge ${statusClass}">${res.status.toUpperCase()}</span></td>
       <td>
-        ${res.status === 'confirmada' ? `
-          <button class="btn btn-danger btn-sm btn-cancel-res" data-id="${res.id}">
-            Cancelar
-          </button>
-        ` : `
-          <span style="font-size: 0.8rem; color: var(--text-muted);">Completada</span>
-        `}
+        ${acciones.length > 0
+          ? acciones.join(' ')
+          : `<span style="font-size: 0.8rem; color: var(--text-muted);">${res.status === 'cancelada' ? 'Cancelada' : 'Completada'}</span>`
+        }
       </td>
     `;
     tableBody.appendChild(tr);
@@ -209,14 +216,40 @@ function renderReservations() {
   });
 }
 
+// HUS-09: cancelar reserva solicitando confirmación y cambiando su estado (no se elimina)
 function cancelReservation(id) {
-  if (confirm(`¿Deseas cancelar la reserva ${id}?`)) {
-    currentReservations = currentReservations.filter(r => r.id !== id);
+  if (confirm(`¿Deseas cancelar la reserva ${id}? Esta acción no se puede deshacer.`)) {
+    const reserva = currentReservations.find(r => r.id === id);
+    if (!reserva) {
+      showToast('No se encontró la reserva', 'error');
+      return;
+    }
+    reserva.status = 'cancelada'; // cambia el estado, no se elimina
     localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(currentReservations));
     renderReservations();
     renderStats(AuthManager.getCurrentUser());
     showToast(`Reserva ${id} cancelada`, 'info');
   }
+}
+
+// HUS-08: abre el modal precargando los datos de la reserva a editar
+function openEditModal(reservationId) {
+  const reserva = currentReservations.find(r => r.id === reservationId);
+  if (!reserva) {
+    showToast('No se encontró la reserva', 'error');
+    return;
+  }
+  editingReservationId = reservationId;
+  openBookingModal(reserva.stationId, reserva);
+}
+
+// HUS-08: conecta los botones de editar en cada fila del historial
+function setupEditButtons() {
+  const tableBody = document.getElementById('reservations-tbody');
+  if (!tableBody) return;
+  tableBody.querySelectorAll('.btn-edit-res').forEach(btn => {
+    btn.addEventListener('click', () => openEditModal(btn.getAttribute('data-id')));
+  });
 }
 
 // 6. Modal de Nueva Reserva
@@ -259,31 +292,51 @@ function setupBookingModal() {
   }
 }
 
-function openBookingModal(preselectedStationId = null) {
+function openBookingModal(preselectedStationId = null, reservaAEditar = null) {
   const modal = document.getElementById('booking-modal');
+  const modalTitle = document.getElementById('modal-title');
+  const submitBtn = document.getElementById('btn-submit-booking');
   const stationSelect = document.getElementById('book-station');
   const dateInput = document.getElementById('book-date');
+  const timeSelect = document.getElementById('book-time');
+  const durationSelect = document.getElementById('book-duration');
+
+  // HUS-08: al editar, incluir la estación de la reserva aunque hoy esté ocupada
+  const estacionesDisponibles = currentStations.filter(s =>
+    s.status === 'disponible' || (reservaAEditar && s.id === reservaAEditar.stationId)
+  );
 
   // Llenar select de estaciones disponibles
   if (stationSelect) {
-    stationSelect.innerHTML = currentStations
-      .filter(s => s.status === 'disponible')
+    stationSelect.innerHTML = estacionesDisponibles
       .map(s => `
         <option value="${s.id}" ${preselectedStationId === s.id ? 'selected' : ''}>
           ${s.name} - $${s.pricePerHour.toLocaleString('es-CO')}/h
         </option>
       `).join('');
   }
-
-  // Poner fecha de hoy por defecto
-  if (dateInput) {
-    const today = new Date().toISOString().split('T')[0];
-    dateInput.value = today;
-    dateInput.min = today;
+  // HUS-08: precargar los datos de la reserva que se está editando
+  if (reservaAEditar) {
+    if (modalTitle) modalTitle.textContent = 'Editar Reserva ✏️';
+    if (submitBtn) submitBtn.textContent = 'Guardar Cambios 💾';
+    if (dateInput) dateInput.value = reservaAEditar.dateRaw || new Date().toISOString().split('T')[0];
+    if (timeSelect && reservaAEditar.time) {
+      const horaInicio = reservaAEditar.time.split(' - ')[0];
+      const opcion = timeSelect.querySelector(`option[value^="${horaInicio}"]`);
+      if (opcion) timeSelect.value = opcion.value;
+    }
+    if (durationSelect) durationSelect.value = String(reservaAEditar.durationHours || 2);
+  } else {
+    // Modo creacion: titulo original y fecha de hoy por defecto
+    if (modalTitle) modalTitle.textContent = 'Reservar Estación Gamer 🎮';
+    if (submitBtn) submitBtn.textContent = 'Confirmar Reserva 🚀';
+    if (dateInput) {
+      const today = new Date().toISOString().split('T')[0];
+      dateInput.value = today;
+      dateInput.min = today;
+    }
   }
-
   updateModalPrice();
-
   if (modal) {
     modal.classList.add('active');
   }
@@ -312,11 +365,28 @@ function updateModalPrice() {
   }
 }
 
+// HUS-06 y HUS-08: crear o actualizar una reserva según el modo del modal
 function createReservation() {
   const stationSelect = document.getElementById('book-station');
   const dateInput = document.getElementById('book-date');
   const timeSelect = document.getElementById('book-time');
   const durationSelect = document.getElementById('book-duration');
+
+  // Validaciones (HUS-06 / HUS-08)
+  if (!stationSelect.value) {
+    showToast('Selecciona una estación válida', 'error');
+    return;
+  }
+  if (!dateInput.value) {
+    showToast('Selecciona una fecha para la reserva', 'warning');
+    return;
+  }
+  const fechaSeleccionada = new Date(dateInput.value + 'T00:00:00');
+  const hoy = new Date(); hoy.setHours(0, 0, 0, 0);
+  if (fechaSeleccionada < hoy) {
+    showToast('No puedes reservar en una fecha pasada', 'error');
+    return;
+  }
 
   const station = currentStations.find(s => s.id === stationSelect.value);
   if (!station) {
@@ -326,13 +396,37 @@ function createReservation() {
 
   const hours = parseInt(durationSelect.value, 10);
   const total = station.pricePerHour * hours;
+
+  // HUS-08: si hay una reserva en edición, actualizar sus datos
+  if (editingReservationId) {
+    const reserva = currentReservations.find(r => r.id === editingReservationId);
+    if (reserva) {
+      reserva.stationId = station.id;
+      reserva.stationName = station.name;
+      reserva.date = dateInput.value;
+      reserva.dateRaw = dateInput.value;
+      reserva.time = timeSelect.value;
+      reserva.durationHours = hours;
+      reserva.totalPrice = total;
+      localStorage.setItem(CONFIG.RESERVATIONS_KEY, JSON.stringify(currentReservations));
+      showToast(`Reserva ${reserva.id} actualizada correctamente`, 'success');
+    }
+    editingReservationId = null;
+    closeBookingModal();
+    renderReservations();
+    renderStats(AuthManager.getCurrentUser());
+    return;
+  }
+
+  // HUS-06: crear una reserva nueva
   const newId = `RES-${Math.floor(1000 + Math.random() * 9000)}`;
 
   const newRes = {
     id: newId,
     stationId: station.id,
     stationName: station.name,
-    date: dateInput.value || 'Hoy',
+    date: dateInput.value,
+    dateRaw: dateInput.value,
     time: timeSelect.value,
     durationHours: hours,
     totalPrice: total,
