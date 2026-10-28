@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Registro de Jugador | Gaming Arena</title>
+  <meta name="description"
+    content="Crea tu cuenta en Gaming Arena, obtén 500 Coins de bienvenida y empieza a reservar estaciones de alto rendimiento.">
+  <link rel="stylesheet" href="css/main.css">
+  <link rel="stylesheet" href="css/auth.css">
+</head>
+
+<body>
+  <div class="auth-wrapper">
+    <main class="auth-container">
+
+      <!-- Panel Lateral Izquierdo -->
+      <aside class="auth-sidebar">
+        <header class="brand-header">
+          <div class="brand-icon" aria-hidden="true">
+            <svg width="26" height="26" fill="currentColor" viewBox="0 0 24 24">
+              <path
+                d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm-5-9h2v2H7zm4-4h2v2h-2zm4 4h2v2h-2zm-4 4h2v2h-2z" />
+            </svg>
+          </div>
+          <div class="brand-name">GAMING<span>ARENA</span></div>
+        </header>
+
+        <div class="sidebar-content">
+          <h2 class="sidebar-title">Únete a la nueva era de los <span class="gradient-text">eSports</span></h2>
+          <p class="sidebar-desc">
+            Crea tu perfil oficial de jugador. Recibe un bono inicial de <strong>500 Arena Coins</strong> para disfrutar
+            tu primera sesión.
+          </p>
+
+          <ul class="perks-list">
+            <li class="perks-item">
+              <span class="perks-item-icon">🎮</span>
+              <span>Acceso ilimitado a biblioteca de más de 300 juegos</span>
+            </li>
+            <li class="perks-item">
+              <span class="perks-item-icon">⚡</span>
+              <span>Guardado de perfiles de periféricos y DPI en la nube</span>
+            </li>
+            <li class="perks-item">
+              <span class="perks-item-icon">🎁</span>
+              <span>Bono de bienvenida acreditado inmediatamente</span>
+            </li>
+          </ul>
+        </div>
+
+        <footer class="sidebar-footer">
+          <p>&copy; 2026 Gaming Arena. Sprint 1 - Frontend por Camilo.</p>
+        </footer>
+      </aside>
+
+      <!-- Panel Derecho: Formulario de Registro (HUS-02) -->
+      <section class="auth-main">
+        <header class="auth-header">
+          <span class="badge badge-purple" style="margin-bottom: 0.6rem;">HUS-02 • NUEVO GAMER</span>
+          <h1 class="auth-title">Crear Cuenta</h1>
+          <p class="auth-subtitle">Completa tus datos para ingresar al ecosistema gamer</p>
+        </header>
+
+        <form id="form-register" novalidate>
+
+          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+            <!-- GamerTag -->
+            <div class="form-group">
+              <label for="reg-gamertag" class="form-label">GamerTag (Alias)</label>
+              <div class="input-wrapper">
+                <span class="input-icon">🎮</span>
+                <input type="text" id="reg-gamertag" name="gamertag" class="form-control"
+                  placeholder="Ej: DarkKnight_99" required>
+              </div>
+              <div id="reg-tag-error" class="form-feedback invalid-feedback"></div>
+            </div>
+
+            <!-- Nombre Completo -->
+            <div class="form-group">
+              <label for="reg-name" class="form-label">Nombre Completo</label>
+              <div class="input-wrapper">
+                <span class="input-icon">👤</span>
+                <input type="text" id="reg-name" name="name" class="form-control" placeholder="Tu nombre y apellido"
+                  required>
+              </div>
+              <div id="reg-name-error" class="form-feedback invalid-feedback"></div>
+            </div>
+          </div>
+
+          <!-- Correo Electrónico -->
+          <div class="form-group">
+            <label for="reg-email" class="form-label">Correo Electrónico</label>
+            <div class="input-wrapper">
+              <span class="input-icon">✉️</span>
+              <input type="email" id="reg-email" name="email" class="form-control" placeholder="ejemplo@correo.com"
+                required>
+            </div>
+            <div id="reg-email-error" class="form-feedback invalid-feedback"></div>
+          </div>
+
+          <!-- Contraseña -->
+          <div class="form-group">
+            <label for="reg-password" class="form-label">Contraseña</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reg-password" name="password" class="form-control"
+                placeholder="Mínimo 6 caracteres" required>
+              <button type="button" class="toggle-password" data-target="reg-password"
+                aria-label="Mostrar u ocultar contraseña">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+
+            <!-- Barra medidora de seguridad -->
+            <div class="password-strength-container">
+              <div class="password-strength-bar">
+                <div id="password-strength-progress" class="password-strength-progress"></div>
+              </div>
+              <div class="password-strength-text">
+                <span>Fortaleza de contraseña:</span>
+                <strong id="password-strength-label">Sin contraseña</strong>
+              </div>
+            </div>
+            <div id="reg-password-error" class="form-feedback invalid-feedback"></div>
+          </div>
+
+          <!-- Confirmar Contraseña -->
+          <div class="form-group">
+            <label for="reg-confirm-password" class="form-label">Confirmar Contraseña</label>
+            <div class="input-wrapper">
+              <span class="input-icon">🔒</span>
+              <input type="password" id="reg-confirm-password" name="confirm_password" class="form-control"
+                placeholder="Repite la contraseña" required>
+              <button type="button" class="toggle-password" data-target="reg-confirm-password"
+                aria-label="Mostrar u ocultar contraseña">
+                <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                  <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path>
+                  <path stroke-linecap="round" stroke-linejoin="round"
+                    d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z">
+                  </path>
+                </svg>
+              </button>
+            </div>
+            <div id="reg-confirm-error" class="form-feedback invalid-feedback"></div>
+          </div>
+
+          <!-- Aceptar Términos -->
+          <label class="checkbox-group" for="reg-terms">
+            <input type="checkbox" id="reg-terms" required>
+            <span class="checkbox-label">
+              Acepto el <a href="#"
+                onclick="alert('Reglamento de Gaming Arena: Respeto entre jugadores y cuidado del hardware.'); return false;">código
+                de conducta gamer</a> y términos de servicio.
+            </span>
+          </label>
+
+          <!-- Botón de Registro -->
+          <button type="submit" id="btn-submit-register" class="btn btn-secondary btn-block">
+            <span>Registrarme y Reclamar 500 Coins</span>
+            <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" d="M14 5l7 7m0 0l-7 7m7-7H3"></path>
+            </svg>
+          </button>
+        </form>
+
+        <footer class="auth-switch" style="margin-top: 1.5rem;">
+          ¿Ya tienes cuenta activa?
+          <a href="login.html" id="link-to-login">Inicia Sesión aquí</a>
+        </footer>
+      </section>
+
+    </main>
+  </div>
+
+  <!-- Contenedor para mensajes toast -->
+  <div id="toast-container" aria-live="polite"></div>
+
+  <!-- Scripts -->
+  <script src="js/config.js"></script>
+  <script src="js/auth.js"></script>
+</body>
+
+</html>
