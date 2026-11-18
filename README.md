@@ -1,103 +1,130 @@
-
-# 🎮 Gaming Arena - Sistema de Gestión y Reservas
-
-Aplicación web para la gestión de reservas de puestos de videojuegos de alto rendimiento (PC Gamer VIP, Consolas 4K y Simuladores de Carreras / VR).
-
----
-
-## 👥 Equipo y Roles — Sprint 1
-
-| Rol | Integrante | Responsabilidad Principal |
-| :--- | :--- | :--- |
-| **Frontend** | **Camilo** | Interfaz de usuario, pantallas, estilos visuales gamer, validaciones en cliente y preparación para el consumo de API. |
-| **Backend** | Por asignar | Node.js + Express, API REST, MongoDB, modelos y autenticación. |
-| **Integración / DevOps** | JP | Git/GitHub, repositorio, ramas, Pull Requests, Code Review y despliegue. |
-
----
-
-## 🚀 Entregables del Sprint 1 (Frontend)
-
-Para este Sprint se han implementado las 3 Historias de Usuario principales con una estética gamer moderna (Cyberpunk / Esports Dark Theme, Neón Cyan & Purple, Glassmorphism):
-
-### 1. HUS-01: Pantalla de Login (`frontend/login.html`)
-- Formulario de autenticación para jugadores.
-- Validación de campos en tiempo real (correo válido o alias, contraseña mínima).
-- Botón interactivo para mostrar/ocultar contraseña.
-- Alertas dinámicas tipo Toast y redirección automática al Dashboard.
-- Enlace directo a la vista de Registro.
-
-### 2. HUS-02: Pantalla de Registro (`frontend/register.html`)
-- Registro de nuevos jugadores (GamerTag único, Nombre completo, Correo, Contraseña y Confirmación).
-- Medidor en tiempo real de seguridad de la contraseña (*Débil*, *Regular*, *Buena*, *Excelente*).
-- Validación de coincidencia de contraseñas y aceptación de código de conducta gamer.
-- Asignación de 500 Arena Coins de bienvenida al registrarse.
-
-### 3. HUS-03: Dashboard Gaming Arena (`frontend/dashboard.html`)
-- Barra de navegación con perfil de usuario (@GamerTag, Rango Platino, saldo de Arena Coins y botón de Salir).
-- Tarjetas de métricas: Reservas activas, Saldo de puntos, Horas acumuladas y Próxima sesión.
-- Catálogo de Estaciones de Juego con filtros interactivos:
-  - 🖥️ PC Gamer VIP (RTX 4090, i9-14900K, 240Hz OLED)
-  - 🎮 Consolas 4K (PlayStation 5 & Xbox Series X)
-  - 🏎️ VR & Sim Racing (Cockpits Fanatec y Meta Quest 3)
-- Modal interactivo de **Nueva Reserva**:
-  - Selección de hardware, fecha, hora y duración.
-  - Cálculo dinámico del precio en COP y acreditación de puntos.
-- Tabla de **Historial y Reservas Activas** con opción de cancelación instantánea.
-
----
-
-## 📁 Estructura del Frontend
-
-```text
-SPRINT1_AGUIRRE/
-├── frontend/
-│   ├── index.html               # Redirección inicial
-│   ├── login.html               # HUS-01: Iniciar Sesión
-│   ├── register.html            # HUS-02: Registro de Jugador
-│   ├── dashboard.html           # HUS-03: Dashboard Principal
-│   ├── css/
-│   │   ├── main.css             # Design System, variables CSS, fuentes y componentes globales
-│   │   ├── auth.css             # Estilos para Login y Registro
-│   │   └── dashboard.css        # Estilos para Dashboard, catálogo y modal
-│   └── js/
-│       ├── config.js            # Configuración de API Backend y mock data
-│       ├── auth.js              # Validaciones de formularios de autenticación
-│       └── dashboard.js         # Interactividad del Dashboard y reservas
-├── .gitignore
-└── README.md
-```
-
----
-
-## 🛠️ Cómo Probar la Aplicación Localmente
-
-1. Puedes abrir directamente cualquiera de los archivos `.html` en tu navegador web preferido:
-   - Para empezar en el login: abrir `frontend/login.html`
-   - O abrir `frontend/dashboard.html` directamente para explorar el panel.
-2. También puedes usar una extensión como **Live Server** en VS Code o cualquier servidor HTTP local:
-   ```bash
-   npx serve frontend
-   ```
-
----
-
-## 🌿 Flujo de Git para Camilo
-
-```bash
-# 1. Crear la rama de trabajo para el Frontend
-git checkout -b feature/frontend-sprint1
-
-# 2. Agregar los archivos
-git add .
-
-# 3. Realizar los commits
-git commit -m "feat(frontend): implement login, register and dashboard views for sprint 1 (HUS-01, HUS-02, HUS-03)"
-
-# 4. Subir la rama a GitHub (cuando JP comparta el remoto)
-git push -u origin feature/frontend-sprint1
-```
-=======
 # Gaming Arena
 
-Proyecto desarrollado para el Sprint 1.
+Aplicación web para que los clientes consulten estaciones de juego y creen,
+consulten, actualicen y cancelen sus reservas. El proyecto se desarrolló en
+equipo durante tres sprints con Git, GitHub, Issues, Pull Requests y GitHub
+Projects.
 
+## Integrantes
+
+- `juandavidsalazaramador`
+- `silviadanielafigueroalozano5-art`
+- `camxor20-lab`
+
+Los roles de Frontend, Backend e Integración/DevOps rotan por sprint según la
+guía del taller. El rol del sprint define la responsabilidad principal, pero
+todo el equipo participa en el flujo de Git y GitHub.
+
+## Tecnologías y arquitectura
+
+- **Frontend:** HTML, CSS y JavaScript en `frontend/`.
+- **Backend:** Node.js y Express en `backend/`, organizado en rutas,
+  controladores, modelos, validadores y middleware.
+- **Base de datos:** MongoDB con Mongoose. Los modelos principales son
+  `Usuario`, `Servicio` y `Reserva`.
+- **Autenticación:** JWT y contraseñas almacenadas con bcrypt.
+- **Colaboración y automatización:** Git, GitHub Issues, Pull Requests,
+  GitHub Projects y GitHub Actions.
+
+El frontend consume la API REST del backend. La URL base de la API se configura
+en `frontend/js/config.js`; por defecto es `http://localhost:4000/api`.
+Para una explicación detallada de cada capa y de las funciones conectadas,
+consulta [ARQUITECTURA.md](./ARQUITECTURA.md).
+
+## Funcionalidades y API
+
+| Funcionalidad | Endpoints principales |
+|---|---|
+| Iniciar sesión (HUS-01) | `POST /api/auth/login` |
+| Registrar usuario (HUS-02) | `POST /api/usuarios` |
+| Dashboard y perfil (HUS-03) | `GET /api/dashboard` |
+| Gestión de usuarios (HUS-04) | En el código revisado solo se verificó `POST /api/usuarios`; confirmar con el equipo el resto del CRUD y sus criterios. |
+| Servicios (HUS-05) | Hay modelo, controlador y rutas preparados, pero `servicio.routes.js` no está montado en `backend/routes/index.js`; esos endpoints no están disponibles actualmente. |
+| Crear reserva (HUS-06) | `POST /api/reservations` |
+| Consultar reservas (HUS-07) | `GET /api/reservations`, `GET /api/reservations/:id` |
+| Actualizar reserva (HUS-08) | `PUT /api/reservations/:id` |
+| Cancelar reserva (HUS-09) | `PATCH /api/reservations/:id/cancel` |
+| Estado del servidor | `GET /health` |
+
+Las rutas de reservas requieren autenticación. La API valida disponibilidad,
+evita solapamientos horarios y guarda el precio calculado desde el catálogo del
+servidor.
+
+El estado de cada HUS debe corresponder al avance comprobado por el equipo en
+el tablero; la presencia de un endpoint por sí sola no demuestra que todos sus
+criterios de aceptación estén terminados.
+
+El dashboard responde con información del usuario autenticado. Confirmen
+durante la sustentación qué métricas del sistema muestra la interfaz y cuáles
+siguen siendo datos de demostración o no están disponibles en la API.
+
+## Instalación y ejecución
+
+Requisitos: Node.js 20 o superior y MongoDB local o una URI de MongoDB Atlas.
+
+```powershell
+cd backend
+npm install
+Copy-Item .env.example .env
+npm run dev
+```
+
+Edita `backend/.env` con los datos del entorno:
+
+| Variable | Descripción | Ejemplo local |
+|---|---|---|
+| `PORT` | Puerto del servidor | `4000` |
+| `MONGODB_URI` | URI de MongoDB | `mongodb://127.0.0.1:27017/gaming_arena` |
+| `JWT_SECRET` | Secreto para firmar tokens; usa un valor propio y privado | No compartir |
+| `JWT_EXPIRES_IN` | Vigencia del token | `7d` |
+| `ADMIN_EMAIL` | Correo de la cuenta administradora inicial | `admin@test-arena.com` |
+| `ADMIN_PASSWORD` | Contraseña de la cuenta administradora inicial | `adminPassword123` |
+
+Al iniciar, el backend crea o sincroniza esta cuenta en MongoDB y puede iniciar
+sesión desde `/api/auth/login`. Si ya existe un usuario con ese correo, se le
+asigna el rol administrador y se establece la contraseña configurada. Cambia
+ambas variables por valores únicos y seguros en cualquier entorno compartido o
+de producción; la cuenta predeterminada es conocida y se restablece al arrancar.
+
+Para ejecutar las pruebas automatizadas disponibles:
+
+```powershell
+cd backend
+npm test
+```
+
+## Git, Issues y GitHub Projects
+
+El equipo utiliza `main` como rama estable, `develop` para integración y ramas
+de trabajo `feature/*` y `fix/*`. El flujo esperado es:
+
+`Issue/HUS → rama → commits → Pull Request → revisión → Actions → integración`
+
+El tablero del equipo es [Arena de juegos en GitHub Projects](https://github.com/users/juandavidsalazaramador/projects).
+En la vista compartida se observan los estados **Hacer**, **En curso** y
+**Hecho**. Cada tarjeta debe reflejar el estado real de su Issue y tener
+responsable; antes de marcar una HUS como hecha, el equipo debe comprobar sus
+criterios y la integración correspondiente.
+
+## GitHub Actions
+
+Los workflows del repositorio se encuentran en `.github/workflows/` y se
+pueden consultar en [GitHub Actions](https://github.com/juandavidsalazaramador/gaming_arena/actions).
+Al revisar el historial publicado el 3 de noviembre de 2026, se observó que:
+
+- El workflow **Gaming Arena CI** terminó correctamente, pero su ejecución solo
+  descargó el repositorio e imprimió mensajes; no ejecutó las pruebas del
+  proyecto.
+- El workflow **CI** terminó con error durante la configuración de Node.js; los
+  pasos de instalación y pruebas quedaron omitidos.
+
+Por lo tanto, esos resultados no demuestran que las pruebas del proyecto hayan
+pasado en GitHub. Revisar la ejecución más reciente antes de presentar el CI
+como verificado.
+
+## Evidencias del taller
+
+- Issues e historial: [Issues del repositorio](https://github.com/juandavidsalazaramador/gaming_arena/issues).
+- Pull Requests y revisiones: [Pull Requests](https://github.com/juandavidsalazaramador/gaming_arena/pulls).
+- Tablero y tarjetas: [GitHub Projects](https://github.com/users/juandavidsalazaramador/projects).
+- Ejecuciones automatizadas: [GitHub Actions](https://github.com/juandavidsalazaramador/gaming_arena/actions).

@@ -1,12 +1,14 @@
 require('dotenv').config();
 const app = require('./app');
 const { connectDB } = require('./config/db');
+const { ensureAdminAccount } = require('./config/admin');
 
 const PORT = process.env.PORT || 4000;
 
 async function main() {
   try {
     await connectDB();
+    await ensureAdminAccount();
 
     const servidor = app.listen(PORT, () => {
       console.log(`✅ Servidor escuchando en http://localhost:${PORT}`);
