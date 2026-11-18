@@ -49,6 +49,14 @@ Configura los valores correspondientes en tu `.env`:
 | `MONGODB_URI` | Cadena de conexión a la base de datos | `mongodb://127.0.0.1:27017/gaming_arena` |
 | `JWT_SECRET` | Clave secreta para firmar tokens JWT | `tu_secreto_super_seguro_jwt` |
 | `JWT_EXPIRES_IN` | Tiempo de expiración del token JWT | `7d` |
+| `ADMIN_EMAIL` | Correo de la cuenta administradora inicial | `admin@test-arena.com` |
+| `ADMIN_PASSWORD` | Contraseña de la cuenta administradora inicial | `adminPassword123` |
+
+Antes de escuchar peticiones, el servidor crea esta cuenta si no existe. Si ya
+existe un usuario con ese correo, lo sincroniza con el rol administrador y la
+contraseña configurada. En producción y en entornos compartidos, reemplaza ambos
+valores por credenciales seguras y únicas: la cuenta predeterminada es conocida
+y sus credenciales se restablecen al iniciar el backend.
 
 ### 4. Iniciar la Aplicación
 - **Modo Desarrollo (con recarga automática):**

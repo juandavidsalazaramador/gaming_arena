@@ -22,13 +22,34 @@ function requireAuth(req, res, next) {
   }
 }
 
-// Restringe acceso por rol(es). Uso: requireAuth, requireRole('admin')
+function authOpcional(req, res, next) {
+  const header = req.headers.authorization;
+  if (!header) return next();
+
+  const token = header.startsWith("Bearer ") ? header.slice(7) : null;
+  if (!token) {
+    return res
+      .status(401)
+      .json({ ok: false, message: "Token inválido o expirado" });
+  }
+
+  try {
+    req.user = jwt.verify(token, process.env.JWT_SECRET);
+    next();
+  } catch (err) {
+    return res
+      .status(401)
+      .json({ ok: false, message: "Token inválido o expirado" });
+  }
+}
+
+// Restringe acceso por rol(es). Uso: requireAuth, requireRole('administrador')
 function requireRole(...roles) {
   return (req, res, next) => {
     if (!req.user) {
       return res.status(401).json({ ok: false, message: "No autorizado" });
     }
-    if (roles.length && !roles.includes(req.user.role)) {
+    if (roles.length && !roles.includes(req.user.rol)) {
       return res
         .status(403)
         .json({ ok: false, message: "Prohibido: rol insuficiente" });
@@ -37,4 +58,4 @@ function requireRole(...roles) {
   };
 }
 
-module.exports = { requireAuth, requireRole };
+module.exports = { authOpcional, requireAuth, requireRole };

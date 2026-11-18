@@ -16,11 +16,15 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version: 20
           cache: npm
+          cache-dependency-path: backend/package-lock.json
 
       - name: Install dependencies
-        run: npm install --no-fund --no-audit
+        run: npm ci --prefix backend --no-fund --no-audit
+
+      - name: Check JavaScript syntax
+        run: npm run check
 
       - name: Run tests
         run: npm test

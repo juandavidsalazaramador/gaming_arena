@@ -4,7 +4,9 @@ const Usuario = require("../models/Usuario");
 // POST /api/usuarios
 exports.registrar = async (req, res, next) => {
   try {
-    const { nombre, gamerTag, correo, contraseña, rol } = req.body;
+    const { nombre, gamerTag, correo, contraseña } = req.body;
+    const rol =
+      req.user?.rol === "administrador" ? req.body.rol : "cliente";
 
     // 7. Verificar que el correo no esté registrado anteriormente
     const correoExiste = await Usuario.findOne({ correo });
